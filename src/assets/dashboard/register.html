@@ -1,0 +1,95 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neko MN Manager - Register</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      .bg-grid {
+        background-image:
+          linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+        background-size: 44px 44px;
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <div class="absolute inset-0 bg-grid opacity-40"></div>
+    <div class="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900"></div>
+
+    <main class="relative z-10 flex min-h-screen items-center justify-center px-6">
+      <div class="w-full max-w-lg rounded-3xl border border-slate-800/80 bg-slate-900/70 p-10 backdrop-blur">
+        <div class="mb-8">
+          <p class="text-sm uppercase tracking-[0.3em] text-slate-400">Neko MN Manager</p>
+          <h1 class="mt-4 text-3xl font-semibold">Create account</h1>
+          <p class="mt-2 text-slate-400">Register and auto-login to the dashboard.</p>
+        </div>
+        <div id="alert-box" class="mb-6 hidden rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+          <div class="flex items-center justify-between gap-4">
+            <span id="alert-message"></span>
+            <button id="alert-close" class="rounded-lg border border-rose-400/40 px-2 py-1 text-xs text-rose-200 hover:border-rose-300">Close</button>
+          </div>
+        </div>
+
+        <div class="grid gap-6">
+          <div>
+            <label class="text-sm text-slate-300">Username</label>
+            <input id="auth-username" class="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 focus:border-cyan-400 focus:outline-none" />
+          </div>
+          <div>
+            <label class="text-sm text-slate-300">Password</label>
+            <input id="auth-password" type="password" class="mt-2 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-slate-100 focus:border-cyan-400 focus:outline-none" />
+          </div>
+          <button id="register-btn" class="w-full rounded-xl bg-cyan-500 px-4 py-3 font-semibold text-slate-900 hover:bg-cyan-400">Register</button>
+          <div class="flex items-center justify-between text-xs text-slate-400">
+            <a class="hover:text-slate-200" href="/">Back to home</a>
+            <a class="hover:text-slate-200" href="/login">Already have an account?</a>
+          </div>
+        </div>
+      </div>
+    </main>
+
+    <script>
+      const api = async (path, options = {}) => {
+        const res = await fetch(path, {
+          ...options,
+          headers: { "content-type": "application/json", ...(options.headers || {}) },
+          credentials: "include"
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      };
+
+      const alertBox = document.getElementById("alert-box");
+      const alertMessage = document.getElementById("alert-message");
+      const alertClose = document.getElementById("alert-close");
+
+      function showAlert(message) {
+        alertMessage.textContent = message;
+        alertBox.classList.remove("hidden");
+      }
+
+      alertClose.addEventListener("click", () => {
+        alertBox.classList.add("hidden");
+      });
+
+      document.getElementById("register-btn").addEventListener("click", async () => {
+        try {
+          const username = document.getElementById("auth-username").value;
+          const password = document.getElementById("auth-password").value;
+          await api("/api/auth/register", {
+            method: "POST",
+            body: JSON.stringify({ username, password })
+          });
+          window.location.href = "/dashboard";
+        } catch (err) {
+          showAlert("Registration failed.");
+        }
+      });
+    </script>
+  </body>
+</html>

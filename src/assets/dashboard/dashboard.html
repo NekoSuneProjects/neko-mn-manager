@@ -1,0 +1,674 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Neko MN Manager</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <style>
+      :root {
+        color-scheme: dark;
+      }
+      .bg-grid {
+        background-image:
+          linear-gradient(rgba(148, 163, 184, 0.08) 1px, transparent 1px),
+          linear-gradient(90deg, rgba(148, 163, 184, 0.08) 1px, transparent 1px);
+        background-size: 44px 44px;
+      }
+      .glow {
+        box-shadow: 0 0 30px rgba(56, 189, 248, 0.2);
+      }
+    </style>
+  </head>
+  <body class="min-h-screen bg-slate-950 text-slate-100">
+    <div class="absolute inset-0 bg-grid opacity-40"></div>
+    <div class="absolute inset-0 bg-gradient-to-br from-slate-950 via-slate-950 to-slate-900"></div>
+
+    <main class="relative z-10 min-h-screen">
+
+      <section id="app-view" class="min-h-screen">
+        <div class="flex min-h-screen">
+          <aside class="w-64 border-r border-slate-800 bg-slate-950/80 p-6">
+            <div class="mb-8">
+              <p class="text-xs uppercase tracking-[0.3em] text-slate-500">Neko MN Manager</p>
+              <h2 class="mt-3 text-xl font-semibold">Dashboard</h2>
+            </div>
+            <nav class="space-y-2 text-sm">
+              <button class="nav-btn w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-900" data-target="overview">Overview</button>
+              <button class="nav-btn w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-900" data-target="nodes">Nodes</button>
+              <button class="nav-btn w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-900" data-target="transactions">Transactions</button>
+              <button class="nav-btn w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-900" data-target="explorer">Explorer</button>
+              <button class="nav-btn w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-900" data-target="settings">Settings</button>
+            </nav>
+            <div class="mt-10 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-xs text-slate-400">
+              <p>Session expires in 5 hours.</p>
+            </div>
+            <button id="logout-btn" class="mt-6 w-full rounded-xl border border-slate-700 bg-slate-950 px-4 py-3 text-sm font-semibold text-slate-300 hover:border-slate-500">Logout</button>
+          </aside>
+
+          <div class="flex-1 px-8 py-10">
+            <div id="alert-box" class="mb-6 hidden rounded-2xl border border-rose-500/40 bg-rose-500/10 px-4 py-3 text-sm text-rose-200">
+              <div class="flex items-center justify-between gap-4">
+                <span id="alert-message"></span>
+                <button id="alert-close" class="rounded-lg border border-rose-400/40 px-2 py-1 text-xs text-rose-200 hover:border-rose-300">Close</button>
+              </div>
+            </div>
+            <header class="mb-10 flex items-center justify-between">
+              <div>
+                <p class="text-sm text-slate-400">Welcome</p>
+                <h1 id="user-label" class="text-3xl font-semibold"></h1>
+              </div>
+              <div class="flex items-center gap-3 rounded-2xl border border-slate-800 bg-slate-900/60 px-4 py-2 text-sm text-slate-300">
+                <span class="inline-flex h-2 w-2 rounded-full bg-cyan-400"></span>
+                <span>Multi-chain masternode hosting</span>
+              </div>
+            </header>
+
+            <section id="view-overview" class="space-y-6">
+              <div class="grid gap-6 lg:grid-cols-3">
+                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                  <p class="text-sm text-slate-400">Total Nodes</p>
+                  <p id="stat-nodes" class="mt-3 text-3xl font-semibold">0</p>
+                </div>
+                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                  <p class="text-sm text-slate-400">Active Nodes</p>
+                  <p id="stat-active" class="mt-3 text-3xl font-semibold">0</p>
+                </div>
+                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                  <p class="text-sm text-slate-400">Total Balance</p>
+                  <p id="stat-balance" class="mt-3 text-3xl font-semibold">0.00</p>
+                </div>
+              </div>
+              <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                <div class="flex items-center justify-between">
+                  <h3 class="text-lg font-semibold">Quick Actions</h3>
+                </div>
+                <p class="mt-2 text-sm text-slate-400">Status auto-refreshes while nodes exist.</p>
+              </div>
+            </section>
+
+            <section id="view-nodes" class="hidden space-y-8">
+              <div class="flex items-center justify-between">
+                <h2 class="text-2xl font-semibold">Your Nodes</h2>
+                <button id="open-create-node" class="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-cyan-400">Add Node</button>
+              </div>
+              <div id="nodes-grid" class="grid gap-6 lg:grid-cols-2"></div>
+            </section>
+
+            <section id="view-transactions" class="hidden space-y-8">
+              <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h2 class="text-2xl font-semibold">Transactions</h2>
+                  <p class="text-sm text-slate-400">All wallet transactions across nodes.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                  <input id="tx-search" placeholder="Search txid, address, amount, height, node" class="w-72 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200" />
+                  <button id="tx-refresh" class="rounded-xl border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:border-slate-500">Refresh</button>
+                </div>
+              </div>
+              <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                <div id="tx-list" class="space-y-3"></div>
+              </div>
+            </section>
+
+            <section id="view-explorer" class="hidden space-y-8">
+              <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h2 class="text-2xl font-semibold">Explorer</h2>
+                  <p class="text-sm text-slate-400">Self-hosted chain explorer view.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                  <select id="explorer-chain" class="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"></select>
+                  <input id="explorer-search" placeholder="Block height, block hash, txid, address" class="w-72 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200" />
+                  <button id="explorer-search-btn" class="rounded-xl border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:border-slate-500">Search</button>
+                </div>
+              </div>
+              <div class="grid gap-6 lg:grid-cols-3">
+                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                  <p class="text-sm text-slate-400">Block Count</p>
+                  <p id="explorer-blockcount" class="mt-3 text-2xl font-semibold">-</p>
+                </div>
+                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                  <p class="text-sm text-slate-400">Best Block Hash</p>
+                  <p id="explorer-besthash" class="mt-3 break-all text-xs text-slate-300">-</p>
+                </div>
+                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                  <p class="text-sm text-slate-400">Mempool</p>
+                  <p id="explorer-mempool" class="mt-3 text-2xl font-semibold">-</p>
+                </div>
+              </div>
+              <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                <pre id="explorer-result" class="max-h-96 overflow-auto text-xs text-slate-300"></pre>
+              </div>
+            </section>
+
+            <section id="view-settings" class="hidden space-y-8">
+              <div>
+                <h2 class="text-2xl font-semibold">Wallet Operations</h2>
+                <p class="text-sm text-slate-400">Deposit and withdraw earnings directly from each node.</p>
+              </div>
+              <div class="grid gap-6 lg:grid-cols-2">
+                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                  <h3 class="text-lg font-semibold">Deposit Address</h3>
+                  <select id="deposit-node" class="mt-4 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"></select>
+                  <button id="deposit-btn" class="mt-4 w-full rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-cyan-400">Generate Address</button>
+                  <p id="deposit-address" class="mt-4 break-all text-sm text-slate-300"></p>
+                </div>
+                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                  <h3 class="text-lg font-semibold">Withdraw</h3>
+                  <select id="withdraw-node" class="mt-4 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"></select>
+                  <input id="withdraw-address" placeholder="Destination address" class="mt-4 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200" />
+                  <input id="withdraw-amount" type="number" step="0.0001" placeholder="Amount" class="mt-4 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200" />
+                  <button id="withdraw-btn" class="mt-4 w-full rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-cyan-400">Send</button>
+                  <p id="withdraw-result" class="mt-4 text-xs text-slate-400"></p>
+                </div>
+                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                  <h3 class="text-lg font-semibold">Import Private Key</h3>
+                  <select id="import-node" class="mt-4 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"></select>
+                  <input id="import-key" placeholder="WIF private key" class="mt-4 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200" />
+                  <input id="import-label" placeholder="Label (optional)" class="mt-4 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200" />
+                  <label class="mt-4 flex items-center gap-2 text-xs text-slate-400">
+                    <input id="import-rescan" type="checkbox" class="h-4 w-4 rounded border-slate-600 bg-slate-950" />
+                    Rescan after import (slower)
+                  </label>
+                  <button id="import-btn" class="mt-4 w-full rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-cyan-400">Import</button>
+                  <p id="import-result" class="mt-4 text-xs text-slate-400"></p>
+                </div>
+                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                  <h3 class="text-lg font-semibold">Export Private Key</h3>
+                  <select id="export-node" class="mt-4 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"></select>
+                  <input id="export-address" placeholder="Address to export" class="mt-4 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200" />
+                  <button id="export-btn" class="mt-4 w-full rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-cyan-400">Export</button>
+                  <p id="export-result" class="mt-4 break-all text-xs text-slate-400"></p>
+                </div>
+                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                  <h3 class="text-lg font-semibold">Export All Keys</h3>
+                  <select id="export-all-node" class="mt-4 w-full rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"></select>
+                  <label class="mt-4 flex items-center gap-2 text-xs text-slate-400">
+                    <input id="export-all-only-balance" type="checkbox" class="h-4 w-4 rounded border-slate-600 bg-slate-950" />
+                    Only addresses with balance
+                  </label>
+                  <button id="export-all-btn" class="mt-4 w-full rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-cyan-400">Export All</button>
+                  <pre id="export-all-result" class="mt-4 max-h-48 overflow-auto rounded-xl border border-slate-800 bg-slate-950 p-3 text-xs text-slate-300"></pre>
+                </div>
+              </div>
+            </section>
+          </div>
+        </div>
+      </section>
+
+      <div id="create-node-modal" class="fixed inset-0 hidden items-center justify-center bg-black/60">
+        <div class="w-full max-w-2xl rounded-3xl border border-slate-800 bg-slate-900/90 p-8 backdrop-blur">
+          <div class="flex items-center justify-between">
+            <h3 class="text-xl font-semibold">Create Node</h3>
+            <button id="close-create-node" class="text-slate-400 hover:text-slate-200">X</button>
+          </div>
+          <div class="mt-6 grid gap-4 md:grid-cols-2">
+            <input id="node-id" placeholder="Node ID" class="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200" />
+            <select id="node-chain" class="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"></select>
+            <input id="node-ip" placeholder="External IP" class="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200" />
+            <input id="node-key" placeholder="Masternode Key" class="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200" />
+            <input id="node-snapshot" placeholder="Snapshot URL (optional)" class="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200 md:col-span-2" />
+          </div>
+          <button id="create-node-btn" class="mt-6 w-full rounded-xl bg-cyan-500 px-4 py-3 text-sm font-semibold text-slate-900 hover:bg-cyan-400">Create Node</button>
+          <p id="create-node-error" class="mt-4 text-xs text-rose-400"></p>
+        </div>
+      </div>
+    </main>
+
+        <script>
+      const state = {
+        user: null,
+        nodes: []
+      };
+
+      const appView = document.getElementById("app-view");
+      const userLabel = document.getElementById("user-label");
+      const statNodes = document.getElementById("stat-nodes");
+      const statActive = document.getElementById("stat-active");
+      const statBalance = document.getElementById("stat-balance");
+      const nodesGrid = document.getElementById("nodes-grid");
+      const createModal = document.getElementById("create-node-modal");
+      let refreshTimer = null;
+      let refreshBusy = false;
+      let txSearchTimer = null;
+      let explorerTimer = null;
+      const refreshIntervalMs = 5000;
+
+      const api = async (path, options = {}) => {
+        const res = await fetch(path, {
+          ...options,
+          headers: { "content-type": "application/json", ...(options.headers || {}) },
+          credentials: "include"
+        });
+        if (!res.ok) throw new Error(await res.text());
+        return res.json();
+      };
+
+      const alertBox = document.getElementById("alert-box");
+      const alertMessage = document.getElementById("alert-message");
+      const alertClose = document.getElementById("alert-close");
+
+      function showAlert(message, variant = "error") {
+        alertMessage.textContent = message;
+        alertBox.classList.remove("hidden");
+        alertBox.classList.remove("border-emerald-500/40", "bg-emerald-500/10", "text-emerald-200");
+        alertBox.classList.remove("border-rose-500/40", "bg-rose-500/10", "text-rose-200");
+        if (variant === "success") {
+          alertBox.classList.add("border-emerald-500/40", "bg-emerald-500/10", "text-emerald-200");
+        } else {
+          alertBox.classList.add("border-rose-500/40", "bg-rose-500/10", "text-rose-200");
+        }
+      }
+
+      function clearAlert() {
+        alertBox.classList.add("hidden");
+      }
+
+      alertClose.addEventListener("click", () => {
+        clearAlert();
+      });
+
+      const showApp = () => {
+        appView.classList.remove("hidden");
+      };
+
+      const setActiveView = (target) => {
+        document.querySelectorAll('[id^="view-"]').forEach((el) => el.classList.add("hidden"));
+        document.getElementById(`view-${target}`).classList.remove("hidden");
+        updateExplorerRefresh(target === "explorer");
+      };
+
+      document.querySelectorAll(".nav-btn").forEach((btn) => {
+        btn.addEventListener("click", () => setActiveView(btn.dataset.target));
+      });
+
+      document.getElementById("logout-btn").addEventListener("click", async () => {
+        await api("/api/auth/logout", { method: "POST" });
+        window.location.href = "/login";
+      });
+
+      document.getElementById("open-create-node").addEventListener("click", () => {
+        createModal.classList.remove("hidden");
+        createModal.classList.add("flex");
+      });
+
+      document.getElementById("close-create-node").addEventListener("click", () => {
+        createModal.classList.add("hidden");
+        createModal.classList.remove("flex");
+      });
+
+      document.getElementById("create-node-btn").addEventListener("click", async () => {
+        const payload = {
+          id: document.getElementById("node-id").value,
+          chain: document.getElementById("node-chain").value,
+          externalIp: document.getElementById("node-ip").value,
+          masternodeKey: document.getElementById("node-key").value,
+          snapshotUrl: document.getElementById("node-snapshot").value || undefined
+        };
+        try {
+          await api("/api/nodes", { method: "POST", body: JSON.stringify(payload) });
+          createModal.classList.add("hidden");
+          createModal.classList.remove("flex");
+          await loadNodes();
+        } catch (err) {
+          let message = "Failed to create node.";
+          if (err instanceof Error) {
+            try {
+              const parsed = JSON.parse(err.message);
+              if (parsed && parsed.error) message = parsed.error;
+            } catch {
+              // ignore parse error
+            }
+          }
+          document.getElementById("create-node-error").textContent = message;
+          showAlert(message);
+        }
+      });
+
+      document.getElementById("tx-refresh").addEventListener("click", async () => {
+        await loadTransactions();
+      });
+
+      document.getElementById("tx-search").addEventListener("input", () => {
+        if (txSearchTimer) clearTimeout(txSearchTimer);
+        txSearchTimer = setTimeout(() => {
+          loadTransactions();
+        }, 300);
+      });
+
+      document.getElementById("explorer-search-btn").addEventListener("click", async () => {
+        await performExplorerSearch();
+      });
+
+      document.getElementById("explorer-search").addEventListener("keydown", async (event) => {
+        if (event.key === "Enter") {
+          await performExplorerSearch();
+        }
+      });
+
+      document.getElementById("explorer-chain").addEventListener("change", async () => {
+        document.getElementById("explorer-result").textContent = "";
+        await loadExplorerStats();
+      });
+
+      document.getElementById("deposit-btn").addEventListener("click", async () => {
+        const nodeId = document.getElementById("deposit-node").value;
+        const data = await api(`/api/nodes/${nodeId}/deposit`);
+        document.getElementById("deposit-address").textContent = data.ok ? data.address : data.error;
+        if (!data.ok) showAlert(data.error || "Deposit request failed.");
+      });
+
+      document.getElementById("withdraw-btn").addEventListener("click", async () => {
+        const nodeId = document.getElementById("withdraw-node").value;
+        const address = document.getElementById("withdraw-address").value;
+        const amount = Number(document.getElementById("withdraw-amount").value);
+        const result = await api(`/api/nodes/${nodeId}/send`, {
+          method: "POST",
+          body: JSON.stringify({ address, amount })
+        });
+        document.getElementById("withdraw-result").textContent = result.ok
+          ? `Sent TX: ${result.txid}`
+          : `Error: ${result.error}`;
+        if (!result.ok) showAlert(result.error || "Withdraw failed.");
+      });
+
+      document.getElementById("import-btn").addEventListener("click", async () => {
+        const nodeId = document.getElementById("import-node").value;
+        const privKey = document.getElementById("import-key").value;
+        const label = document.getElementById("import-label").value;
+        const rescan = document.getElementById("import-rescan").checked;
+        const result = await api(`/api/nodes/${nodeId}/import-key`, {
+          method: "POST",
+          body: JSON.stringify({ privKey, label, rescan })
+        });
+        document.getElementById("import-result").textContent = result.ok
+          ? "Imported."
+          : `Error: ${result.error}`;
+        if (!result.ok) showAlert(result.error || "Import failed.");
+      });
+
+      document.getElementById("export-btn").addEventListener("click", async () => {
+        const nodeId = document.getElementById("export-node").value;
+        const address = document.getElementById("export-address").value;
+        const result = await api(`/api/nodes/${nodeId}/export-key`, {
+          method: "POST",
+          body: JSON.stringify({ address })
+        });
+        document.getElementById("export-result").textContent = result.ok
+          ? result.privKey
+          : `Error: ${result.error}`;
+        if (!result.ok) showAlert(result.error || "Export failed.");
+      });
+
+      document.getElementById("export-all-btn").addEventListener("click", async () => {
+        const nodeId = document.getElementById("export-all-node").value;
+        const onlyBalance = document.getElementById("export-all-only-balance").checked;
+        const result = await api(`/api/nodes/${nodeId}/export-all-keys`, {
+          method: "POST",
+          body: JSON.stringify({ includeZero: !onlyBalance })
+        });
+        if (!result.ok) {
+          document.getElementById("export-all-result").textContent = `Error: ${result.error}`;
+          showAlert(result.error || "Export all failed.");
+          return;
+        }
+        const lines = result.keys.map(
+          (item) => `${item.address} | ${item.balance} | ${item.hasBalance ? "HAS_BALANCE" : "NO_BALANCE"} | ${item.privKey}`
+        );
+        document.getElementById("export-all-result").textContent = lines.join("\n");
+      });
+
+      async function bootstrap() {
+        userLabel.textContent = state.user.username;
+        showApp();
+        await loadChains();
+        await loadNodes();
+        await loadTransactions();
+        setActiveView("overview");
+      }
+
+      async function loadChains() {
+        const chains = await api("/api/chains");
+        const chainSelect = document.getElementById("node-chain");
+        chainSelect.innerHTML = chains.map((chain) => `<option value="${chain.id}">${chain.name}</option>`).join("");
+        const explorerSelect = document.getElementById("explorer-chain");
+        explorerSelect.innerHTML = chains
+          .map((chain) => `<option value="${chain.id}">${chain.name}</option>`)
+          .join("");
+      }
+
+      async function loadNodes() {
+        try {
+          state.nodes = await api("/api/nodes");
+        } catch (err) {
+          showAlert("Failed to load nodes.");
+          return;
+        }
+        statNodes.textContent = state.nodes.length;
+        const nodeOptions = state.nodes
+          .map((node) => `<option value="${node.id}">${node.id} (${node.chain})</option>`)
+          .join("");
+        document.getElementById("deposit-node").innerHTML = nodeOptions;
+        document.getElementById("withdraw-node").innerHTML = nodeOptions;
+        document.getElementById("import-node").innerHTML = nodeOptions;
+        document.getElementById("export-node").innerHTML = nodeOptions;
+        document.getElementById("export-all-node").innerHTML = nodeOptions;
+
+        const cards = [];
+        let totalBalance = 0;
+        let activeCount = 0;
+
+        for (const node of state.nodes) {
+          let status = { online: false };
+          let balanceInfo = { balance: 0 };
+          let updateCheck = { updateAvailable: false };
+          try {
+            status = await api(`/api/nodes/${node.id}/status`);
+            balanceInfo = await api(`/api/nodes/${node.id}/balance`);
+            updateCheck = await api(`/api/nodes/${node.id}/update-check`);
+          } catch {
+            // keep defaults
+          }
+          totalBalance += balanceInfo.balance ?? 0;
+          if (status.online && status.verificationProgress && status.verificationProgress > 0.99) {
+            activeCount += 1;
+          }
+
+          const rawPercent = status.online && status.verificationProgress
+            ? Math.min(100, status.verificationProgress * 100)
+            : 0;
+          const percentLabel = rawPercent.toFixed(2);
+          const percentWidth = rawPercent > 0 ? Math.max(1, rawPercent) : 0;
+          const onlineBadge = status.online
+            ? `<span class="rounded-full bg-emerald-500/20 px-2 py-1 text-xs text-emerald-300">Online</span>`
+            : `<span class="rounded-full bg-rose-500/20 px-2 py-1 text-xs text-rose-300">Offline</span>`;
+          const updateBadge = updateCheck.updateAvailable
+            ? `<span class="rounded-full bg-amber-500/20 px-2 py-1 text-xs text-amber-300">Update available</span>`
+            : `<span class="rounded-full bg-emerald-500/20 px-2 py-1 text-xs text-emerald-300">Up to date</span>`;
+
+          cards.push(`
+            <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+              <div class="flex items-start justify-between">
+                <div>
+                  <p class="text-sm text-slate-400">${node.chain.toUpperCase()}</p>
+                  <h3 class="text-xl font-semibold">${node.id}</h3>
+                  <p class="mt-2 text-xs text-slate-400">P2P ${node.p2pPort} - RPC ${node.rpcPort}</p>
+                </div>
+                <div class="space-y-2 text-right">
+                  ${onlineBadge}
+                  ${updateBadge}
+                </div>
+              </div>
+              <div class="mt-4">
+                <div class="flex items-center justify-between text-xs text-slate-400">
+                  <span>Sync progress</span>
+                  <span>${percentLabel}%</span>
+                </div>
+                <div class="mt-2 h-2 rounded-full bg-slate-800">
+                  <div class="h-2 rounded-full bg-cyan-400" style="width:${percentWidth}%"></div>
+                </div>
+                <p class="mt-3 text-sm text-slate-300">Balance: ${(balanceInfo.balance ?? 0).toFixed(4)}</p>
+              </div>
+              <div class="mt-5 grid grid-cols-2 gap-3 text-xs">
+                <button class="node-action rounded-xl border border-slate-700 px-3 py-2 text-slate-300 hover:border-slate-500" data-id="${node.id}" data-action="start">Start</button>
+                <button class="node-action rounded-xl border border-slate-700 px-3 py-2 text-slate-300 hover:border-slate-500" data-id="${node.id}" data-action="stop">Stop</button>
+                <button class="node-action rounded-xl border border-slate-700 px-3 py-2 text-slate-300 hover:border-slate-500" data-id="${node.id}" data-action="restart">Restart</button>
+                <button class="node-action rounded-xl border border-slate-700 px-3 py-2 text-slate-300 hover:border-slate-500" data-id="${node.id}" data-action="resync">Resync</button>
+                <button class="node-action rounded-xl border border-slate-700 px-3 py-2 text-slate-300 hover:border-slate-500" data-id="${node.id}" data-action="update">Update Core</button>
+                <button class="node-action col-span-2 rounded-xl border border-rose-500/50 px-3 py-2 text-rose-300 hover:border-rose-400" data-id="${node.id}" data-action="delete">Delete</button>
+              </div>
+              <details class="mt-4 text-xs text-slate-400">
+                <summary class="cursor-pointer">Masternode Key</summary>
+                <p class="mt-2 break-all text-slate-300">${node.masternodeKey}</p>
+              </details>
+            </div>
+          `);
+        }
+
+        statActive.textContent = activeCount;
+        statBalance.textContent = totalBalance.toFixed(4);
+        nodesGrid.innerHTML = cards.join("");
+
+        document.querySelectorAll(".node-action").forEach((btn) => {
+          btn.addEventListener("click", async () => {
+            const id = btn.dataset.id;
+            const action = btn.dataset.action;
+            if (action === "delete") {
+              if (!confirm(`Delete ${id} and remove its files?`)) return;
+              await api(`/api/nodes/${id}`, { method: "DELETE" });
+              await loadNodes();
+              return;
+            }
+            await api(`/api/nodes/${id}/${action}`, { method: "POST" });
+            await loadNodes();
+          });
+        });
+
+        updateAutoRefresh(state.nodes.length > 0);
+      }
+
+      async function loadTransactions() {
+        const search = document.getElementById("tx-search").value || "";
+        let data = { items: [] };
+        try {
+          data = await api(`/api/transactions?search=${encodeURIComponent(search)}`);
+        } catch (err) {
+          showAlert("Failed to load transactions.");
+          return;
+        }
+        const list = document.getElementById("tx-list");
+        if (!data.items.length) {
+          list.innerHTML = '<p class="text-sm text-slate-400">No transactions yet.</p>';
+        } else {
+          list.innerHTML = data.items
+            .map(
+              (tx) => `
+                <div class="rounded-2xl border border-slate-800 bg-slate-950/70 p-4 text-sm">
+                  <div class="flex flex-wrap items-center justify-between gap-2">
+                    <span class="text-slate-300">${tx.label} - ${tx.category} - ${tx.amount}</span>
+                    <span class="text-xs text-slate-500">${tx.time ? new Date(tx.time * 1000).toLocaleString() : ""}</span>
+                  </div>
+                  <div class="mt-2 flex flex-wrap items-center gap-3 text-xs text-slate-500">
+                    <span>Height: ${tx.blockheight ?? "-"}</span>
+                    <span>Conf: ${tx.confirmations ?? "-"}</span>
+                    <span>Address: ${tx.address ?? "-"}</span>
+                  </div>
+                  <p class="mt-2 break-all text-xs text-slate-500">${tx.txid}</p>
+                </div>
+              `
+            )
+            .join("");
+        }
+      }
+
+      async function loadExplorerStats() {
+        const chain = document.getElementById("explorer-chain").value;
+        const blockCount = await api(`/public/${chain}/blockcount`);
+        const bestHash = await api(`/public/${chain}/bestblockhash`);
+        const mempool = await api(`/public/${chain}/mempool`);
+        document.getElementById("explorer-blockcount").textContent = blockCount.ok
+          ? blockCount.blockCount
+          : "-";
+        document.getElementById("explorer-besthash").textContent = bestHash.ok
+          ? bestHash.bestBlockHash
+          : "-";
+        document.getElementById("explorer-mempool").textContent = mempool.ok ? mempool.count : "-";
+      }
+
+      async function performExplorerSearch() {
+        const chain = document.getElementById("explorer-chain").value;
+        const query = document.getElementById("explorer-search").value.trim();
+        const output = document.getElementById("explorer-result");
+        if (!query) {
+          output.textContent = "";
+          return;
+        }
+        const isHeight = /^\d+$/.test(query);
+        const isHash = /^[a-fA-F0-9]{64}$/.test(query);
+        try {
+          if (isHeight) {
+            const result = await api(`/public/${chain}/block/${query}`);
+            output.textContent = result.ok ? JSON.stringify(result.block, null, 2) : result.error;
+            return;
+          }
+          if (isHash) {
+            const tx = await api(`/public/${chain}/tx/${query}`);
+            if (tx.ok) {
+              output.textContent = JSON.stringify(tx.tx, null, 2);
+              return;
+            }
+            const block = await api(`/public/${chain}/block/${query}`);
+            output.textContent = block.ok ? JSON.stringify(block.block, null, 2) : block.error;
+            return;
+          }
+          const address = await api(`/public/${chain}/address/${query}`);
+          output.textContent = address.ok ? JSON.stringify(address.address, null, 2) : address.error;
+        } catch (error) {
+          output.textContent = "Explorer request failed.";
+        }
+      }
+
+      function updateExplorerRefresh(enabled) {
+        if (enabled && !explorerTimer) {
+          explorerTimer = setInterval(async () => {
+            await loadExplorerStats();
+          }, 10000);
+          loadExplorerStats();
+        }
+        if (!enabled && explorerTimer) {
+          clearInterval(explorerTimer);
+          explorerTimer = null;
+        }
+      }
+
+      function updateAutoRefresh(enabled) {
+        if (enabled && !refreshTimer) {
+          refreshTimer = setInterval(async () => {
+            if (refreshBusy) return;
+            refreshBusy = true;
+            try {
+              await loadNodes();
+            } finally {
+              refreshBusy = false;
+            }
+          }, refreshIntervalMs);
+        }
+
+        if (!enabled && refreshTimer) {
+          clearInterval(refreshTimer);
+          refreshTimer = null;
+        }
+      }
+
+      (async () => {
+        try {
+          state.user = await api("/api/auth/me");
+          await bootstrap();
+        } catch (err) {
+          window.location.href = "/login";
+        }
+      })();
+    </script>
+  </body>
+</html>
