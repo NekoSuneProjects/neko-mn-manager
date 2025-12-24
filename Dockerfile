@@ -9,7 +9,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     pkg-config \
   && rm -rf /var/lib/apt/lists/*
 COPY package.json ./
-RUN npm install
+RUN npm install --include=dev
 COPY . .
 EXPOSE 8080
 CMD ["node", "--loader", "ts-node/esm", "src/server/main.ts"]
