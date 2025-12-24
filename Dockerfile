@@ -1,4 +1,4 @@
-FROM node:20-alpine AS runner
+FROM node:20-bullseye-slim AS runner
 WORKDIR /app
 ENV NODE_ENV=production
 ENV TS_NODE_TRANSPILE_ONLY=1
