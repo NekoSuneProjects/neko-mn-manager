@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import { Sequelize, DataTypes, Model, Op } from "sequelize";
+import { Sequelize, DataTypes, Model, Op, type ModelCtor } from "sequelize";
 import type { NodeConfig } from "../types.ts";
 
 export interface UserRecord {
@@ -11,10 +11,12 @@ export interface UserRecord {
 
 export class SequelizeStorage {
   private sequelize: Sequelize;
-  private User: typeof Model;
-  private Node: typeof Model;
+  private User: ModelCtor<Model<any, any>>;
+  private Node: ModelCtor<Model<any, any>>;
+  private storagePath: string;
 
   constructor(dbPath: string) {
+    this.storagePath = dbPath;
     this.sequelize = new Sequelize({
       dialect: "sqlite",
       storage: dbPath,
@@ -57,7 +59,7 @@ export class SequelizeStorage {
   }
 
   async init(): Promise<void> {
-    await fs.mkdir(path.dirname(this.sequelize.options.storage as string), { recursive: true });
+    await fs.mkdir(path.dirname(this.storagePath), { recursive: true });
     await this.sequelize.authenticate();
     await this.sequelize.sync();
   }
