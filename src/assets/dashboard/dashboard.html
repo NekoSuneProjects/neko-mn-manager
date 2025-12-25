@@ -297,7 +297,27 @@
       const refreshIntervalMs = 5000;
       const txRefreshIntervalMs = 5000;
       let chainMap = new Map();
-      let lastTxSeen = new Set();
+      const txSeenStoreKey = "neko-mn-seen-txids";
+      const txSeenLimit = 500;
+      const loadTxSeen = () => {
+        try {
+          const raw = localStorage.getItem(txSeenStoreKey);
+          const parsed = raw ? JSON.parse(raw) : [];
+          if (!Array.isArray(parsed)) return [];
+          return parsed.filter((item) => typeof item === "string");
+        } catch {
+          return [];
+        }
+      };
+      const saveTxSeen = () => {
+        const ids = Array.from(lastTxSeen);
+        const trimmed = ids.slice(Math.max(0, ids.length - txSeenLimit));
+        localStorage.setItem(txSeenStoreKey, JSON.stringify(trimmed));
+      };
+      let lastTxSeen = new Set(loadTxSeen());
+      let notifiedTx = new Set();
+      let txSeenPrimed = lastTxSeen.size > 0;
+      let pendingAlertTxid = null;
 
       const api = async (path, options = {}) => {
         const res = await fetch(path, {
@@ -330,6 +350,12 @@
       }
 
       alertClose.addEventListener("click", () => {
+        if (pendingAlertTxid) {
+          lastTxSeen.add(pendingAlertTxid);
+          notifiedTx.delete(pendingAlertTxid);
+          saveTxSeen();
+          pendingAlertTxid = null;
+        }
         clearAlert();
       });
 
@@ -714,6 +740,18 @@
         }
       }
 
+      function rememberTxids(ids, skip = new Set()) {
+        for (const id of ids) {
+          if (!id) continue;
+          if (skip.has(id)) continue;
+          if (lastTxSeen.has(id)) {
+            lastTxSeen.delete(id);
+          }
+          lastTxSeen.add(id);
+        }
+        saveTxSeen();
+      }
+
       async function loadTransactions() {
         const search = document.getElementById("tx-search").value || "";
         let data = { items: [] };
@@ -726,14 +764,32 @@
         const list = document.getElementById("tx-list");
         if (!data.items.length) {
           list.innerHTML = '<p class="text-sm text-slate-400">No transactions yet.</p>';
+          if (!txSeenPrimed) {
+            txSeenPrimed = true;
+          }
         } else {
           const incoming = data.items.filter((item) => item.category === "receive");
-          const newTxs = incoming.filter((item) => !lastTxSeen.has(item.txid));
-          if (newTxs.length) {
-            const latest = newTxs[0];
-            showAlert(`New transaction: ${latest.label} +${latest.amount}`);
+          const incomingIds = incoming.map((item) => item.txid).filter(Boolean);
+          if (!txSeenPrimed) {
+            rememberTxids([...incomingIds].reverse());
+            txSeenPrimed = true;
+          } else {
+            const newTxs = incoming.filter(
+              (item) => !lastTxSeen.has(item.txid) && !notifiedTx.has(item.txid)
+            );
+            if (newTxs.length) {
+              if (pendingAlertTxid) {
+                lastTxSeen.add(pendingAlertTxid);
+                notifiedTx.delete(pendingAlertTxid);
+                saveTxSeen();
+              }
+              const latest = newTxs[0];
+              pendingAlertTxid = latest.txid;
+              notifiedTx.add(latest.txid);
+              showAlert(`New transaction: ${latest.label} +${latest.amount}`, "success");
+            }
+            rememberTxids([...incomingIds].reverse(), notifiedTx);
           }
-          lastTxSeen = new Set(incoming.map((item) => item.txid));
           list.innerHTML = data.items
             .map(
               (tx) => `

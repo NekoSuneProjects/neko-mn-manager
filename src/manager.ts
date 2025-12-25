@@ -312,6 +312,7 @@ export class NodeManager {
     const nodes = await this.storage.listNodes(userId);
     const results = [];
     const blockHeightCache = new Map<string, number>();
+    const seen = new Set<string>();
     const term = search.trim().toLowerCase();
 
     for (const node of nodes) {
@@ -374,6 +375,17 @@ export class NodeManager {
           }
         }
 
+        const dedupeKey = [
+          entry.txid,
+          entry.category,
+          entry.nodeId,
+          String(entry.amount),
+          entry.address ?? ""
+        ].join("|");
+        if (seen.has(dedupeKey)) {
+          continue;
+        }
+        seen.add(dedupeKey);
         results.push(entry);
       }
     }
