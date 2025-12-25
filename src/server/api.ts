@@ -2,6 +2,9 @@ import express from "express";
 import session from "express-session";
 import ConnectSqlite3 from "connect-sqlite3";
 import bcrypt from "bcryptjs";
+import fs from "node:fs/promises";
+import path from "node:path";
+import { rpcCall } from "../core/rpc.ts";
 
 import type { NodeManager } from "../manager.ts";
 import type { SequelizeStorage } from "../db/storage.ts";
@@ -512,6 +515,40 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
       res.json({
         ok: false,
         error: "Node is offline. Start it first."
+      });
+    }
+  });
+
+  app.get("/api/nodes/:id/logs", async (req, res) => {
+    const lines = Number(req.query.lines ?? 200);
+    try {
+      const node = await manager.getNode(req.session.userId, req.params.id);
+      const logPath = path.join(node.datadir, "debug.log");
+      const content = await fs.readFile(logPath, "utf8");
+      const allLines = content.split(/\r?\n/);
+      const tail = allLines.slice(-Math.max(1, lines)).join("\n");
+      res.json({ ok: true, lines, content: tail });
+    } catch (error) {
+      res.json({
+        ok: false,
+        error: "Log not available. Ensure the node has been started."
+      });
+    }
+  });
+
+  app.post("/api/nodes/:id/rpc", async (req, res) => {
+    const { method, params } = req.body ?? {};
+    if (!method) {
+      return res.status(400).json({ ok: false, error: "RPC method required" });
+    }
+    try {
+      const node = await manager.getNode(req.session.userId, req.params.id);
+      const result = await rpcCall(node, method, params ?? []);
+      res.json({ ok: true, result });
+    } catch (error) {
+      res.json({
+        ok: false,
+        error: error instanceof Error ? error.message : "RPC unavailable"
       });
     }
   });

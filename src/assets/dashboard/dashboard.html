@@ -40,6 +40,7 @@
               <button class="nav-btn w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-900" data-target="staking">Staking</button>
               <button class="nav-btn w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-900" data-target="transactions">Transactions</button>
               <button class="nav-btn w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-900" data-target="explorer">Explorer</button>
+              <button class="nav-btn w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-900" data-target="console">Console</button>
               <button class="nav-btn w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-900" data-target="settings">Settings</button>
             </nav>
             <div class="mt-10 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-xs text-slate-400">
@@ -198,6 +199,36 @@
               </div>
               <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
                 <pre id="explorer-result" class="max-h-96 overflow-auto text-xs text-slate-300"></pre>
+              </div>
+            </section>
+            <section id="view-console" class="hidden space-y-8">
+              <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h2 class="text-2xl font-semibold">Console and Logs</h2>
+                  <p class="text-sm text-slate-400">Send RPC commands and view debug logs.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                  <select id="console-node-select" class="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"></select>
+                  <button id="logs-refresh" class="rounded-xl border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:border-slate-500">Refresh Logs</button>
+                </div>
+              </div>
+              <div class="grid gap-6 lg:grid-cols-2">
+                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                  <h3 class="text-lg font-semibold">RPC Console</h3>
+                  <div class="mt-4 grid gap-3">
+                    <input id="rpc-method" placeholder="RPC method (e.g. getblockcount)" class="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200" />
+                    <input id="rpc-params" placeholder='Params JSON (e.g. ["*", 10, 0])' class="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200" />
+                    <button id="rpc-send" class="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-cyan-400">Send Command</button>
+                    <pre id="rpc-result" class="max-h-64 overflow-auto rounded-2xl border border-slate-800 bg-slate-950/60 p-3 text-xs text-slate-300"></pre>
+                  </div>
+                </div>
+                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                  <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold">debug.log</h3>
+                    <input id="logs-lines" type="number" value="200" class="w-24 rounded-xl border border-slate-700 bg-slate-950 px-2 py-1 text-xs text-slate-200" />
+                  </div>
+                  <pre id="logs-output" class="mt-4 max-h-64 overflow-auto text-xs text-slate-300"></pre>
+                </div>
               </div>
             </section>
 
@@ -530,6 +561,18 @@
         document.getElementById("export-all-result").textContent = lines.join("\n");
       });
 
+      document.getElementById("logs-refresh").addEventListener("click", async () => {
+        await loadLogs();
+      });
+
+      document.getElementById("console-node-select").addEventListener("change", async () => {
+        await loadLogs();
+      });
+
+      document.getElementById("rpc-send").addEventListener("click", async () => {
+        await sendRpcCommand();
+      });
+
       async function bootstrap() {
         userLabel.textContent = state.user.username;
         showApp();
@@ -568,6 +611,7 @@
         document.getElementById("export-all-node").innerHTML = nodeOptions;
         document.getElementById("mn-node-select").innerHTML = nodeOptions;
         document.getElementById("staking-node-select").innerHTML = nodeOptions;
+        document.getElementById("console-node-select").innerHTML = nodeOptions;
 
         const cards = [];
         let totalBalance = 0;
@@ -687,6 +731,7 @@
           await loadPeers();
           await loadStakingStatus();
           await loadColdStakingBalance();
+          await loadLogs();
         }
       }
 
@@ -776,6 +821,60 @@
         const result = await api(`/api/nodes/${nodeId}/coldstaking/utxos`);
         const output = document.getElementById("coldstaking-utxos");
         output.textContent = result.ok ? JSON.stringify(result.utxos, null, 2) : result.error;
+      }
+
+      async function loadLogs() {
+        const nodeId = document.getElementById("console-node-select").value;
+        if (!nodeId) return;
+        const linesValue = Number(document.getElementById("logs-lines").value || 200);
+        let result;
+        try {
+          result = await api(`/api/nodes/${nodeId}/logs?lines=${linesValue}`);
+        } catch (error) {
+          showAlert("Failed to load logs.");
+          return;
+        }
+        const output = document.getElementById("logs-output");
+        output.textContent = result.ok ? result.content : result.error;
+        if (!result.ok) {
+          showAlert(result.error || "Log not available.");
+        }
+      }
+
+      async function sendRpcCommand() {
+        const nodeId = document.getElementById("console-node-select").value;
+        if (!nodeId) return;
+        const method = document.getElementById("rpc-method").value.trim();
+        const paramsRaw = document.getElementById("rpc-params").value.trim();
+        if (!method) {
+          showAlert("RPC method required.");
+          return;
+        }
+        let params = [];
+        if (paramsRaw) {
+          try {
+            params = JSON.parse(paramsRaw);
+          } catch (error) {
+            showAlert("RPC params must be valid JSON.");
+            return;
+          }
+        }
+        const output = document.getElementById("rpc-result");
+        try {
+          const result = await api(`/api/nodes/${nodeId}/rpc`, {
+            method: "POST",
+            body: JSON.stringify({ method, params })
+          });
+          if (!result.ok) {
+            output.textContent = result.error || "RPC failed.";
+            showAlert(result.error || "RPC failed.");
+            return;
+          }
+          output.textContent = JSON.stringify(result.result, null, 2);
+        } catch (error) {
+          output.textContent = "RPC failed.";
+          showAlert("RPC failed.");
+        }
       }
 
       async function loadExplorerStats() {
