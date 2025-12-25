@@ -17,8 +17,5 @@ export function createDashboardRouter(): express.Router {
     res.sendFile(path.join(assetsDir, "dashboard.html"));
   });
   router.use("/", express.static(assetsDir));
-  router.get("/explorer", (_req, res) => {
-    res.sendFile(path.join(assetsDir, "public-explorer.html"));
-  });
   return router;
 }

@@ -382,46 +382,6 @@ export class NodeManager {
     return results;
   }
 
-  async getExplorerBlockCount(chain: string): Promise<number> {
-    const node = await this.getBestNodeByChain(chain);
-    return rpcCall(node, "getblockcount");
-  }
-
-  async getExplorerBestBlockHash(chain: string): Promise<string> {
-    const node = await this.getBestNodeByChain(chain);
-    return rpcCall(node, "getbestblockhash");
-  }
-
-  async getExplorerMempool(chain: string): Promise<string[]> {
-    const node = await this.getBestNodeByChain(chain);
-    return rpcCall(node, "getrawmempool");
-  }
-
-  async getExplorerBlock(chain: string, id: string): Promise<any> {
-    const node = await this.getBestNodeByChain(chain);
-    const height = Number(id);
-    const blockHash =
-      Number.isNaN(height) ? id : await rpcCall<string>(node, "getblockhash", [height]);
-    return rpcCall(node, "getblock", [blockHash, 2]);
-  }
-
-  async getExplorerTx(chain: string, txid: string): Promise<any> {
-    const node = await this.getBestNodeByChain(chain);
-    return rpcCall(node, "getrawtransaction", [txid, true]);
-  }
-
-  async getExplorerAddress(chain: string, address: string): Promise<any> {
-    const node = await this.getBestNodeByChain(chain);
-    const received = await rpcCall<any[]>(node, "listreceivedbyaddress", [0, true, true]);
-    const entry = received.find((row) => row.address === address);
-    return {
-      address,
-      amount: entry?.amount ?? 0,
-      confirmations: entry?.confirmations ?? 0,
-      txids: entry?.txids ?? []
-    };
-  }
-
   async getMasternodeStatus(userId: number, id: string): Promise<any> {
     const node = await this.storage.getNode(userId, id);
     return rpcCall(node, "getmasternodestatus");

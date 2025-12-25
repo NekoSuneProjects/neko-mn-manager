@@ -62,7 +62,6 @@
               <button class="nav-btn w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-900" data-target="overview">Overview</button>
               <button class="nav-btn w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-900" data-target="nodes">Nodes</button>
               <button class="nav-btn w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-900" data-target="transactions">Transactions</button>
-              <button class="nav-btn w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-900" data-target="explorer">Explorer</button>
               <button class="nav-btn w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-900" data-target="settings">Settings</button>
             </nav>
             <div class="mt-10 rounded-2xl border border-slate-800 bg-slate-900/70 p-4 text-xs text-slate-400">
@@ -127,37 +126,6 @@
               </div>
               <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
                 <div id="tx-list" class="space-y-3"></div>
-              </div>
-            </section>
-
-            <section id="view-explorer" class="hidden space-y-8">
-              <div class="flex flex-wrap items-center justify-between gap-4">
-                <div>
-                  <h2 class="text-2xl font-semibold">Explorer</h2>
-                  <p class="text-sm text-slate-400">Self-hosted chain explorer view.</p>
-                </div>
-                <div class="flex items-center gap-3">
-                  <select id="explorer-chain" class="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"></select>
-                  <input id="explorer-search" placeholder="Block height, block hash, txid, address" class="w-72 rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200" />
-                  <button id="explorer-search-btn" class="rounded-xl border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:border-slate-500">Search</button>
-                </div>
-              </div>
-              <div class="grid gap-6 lg:grid-cols-3">
-                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
-                  <p class="text-sm text-slate-400">Block Count</p>
-                  <p id="explorer-blockcount" class="mt-3 text-2xl font-semibold">-</p>
-                </div>
-                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
-                  <p class="text-sm text-slate-400">Best Block Hash</p>
-                  <p id="explorer-besthash" class="mt-3 break-all text-xs text-slate-300">-</p>
-                </div>
-                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
-                  <p class="text-sm text-slate-400">Mempool</p>
-                  <p id="explorer-mempool" class="mt-3 text-2xl font-semibold">-</p>
-                </div>
-              </div>
-              <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
-                <pre id="explorer-result" class="max-h-96 overflow-auto text-xs text-slate-300"></pre>
               </div>
             </section>
 
@@ -279,7 +247,9 @@
       const setActiveView = (target) => {
         document.querySelectorAll('[id^="view-"]').forEach((el) => el.classList.add("hidden"));
         document.getElementById(`view-${target}`).classList.remove("hidden");
-        updateExplorerRefresh(target === "explorer");
+        if (typeof updateExplorerRefresh === "function") {
+          updateExplorerRefresh(target === "explorer");
+        }
       };
 
       document.querySelectorAll(".nav-btn").forEach((btn) => {
@@ -362,20 +332,26 @@
         }, 300);
       });
 
-      document.getElementById("explorer-search-btn").addEventListener("click", async () => {
-        await performExplorerSearch();
-      });
-
-      document.getElementById("explorer-search").addEventListener("keydown", async (event) => {
-        if (event.key === "Enter") {
+      const explorerSearchBtn = document.getElementById("explorer-search-btn");
+      const explorerSearchInput = document.getElementById("explorer-search");
+      const explorerChain = document.getElementById("explorer-chain");
+      if (explorerSearchBtn && explorerSearchInput && explorerChain) {
+        explorerSearchBtn.addEventListener("click", async () => {
           await performExplorerSearch();
-        }
-      });
+        });
 
-      document.getElementById("explorer-chain").addEventListener("change", async () => {
-        document.getElementById("explorer-result").textContent = "";
-        await loadExplorerStats();
-      });
+        explorerSearchInput.addEventListener("keydown", async (event) => {
+          if (event.key === "Enter") {
+            await performExplorerSearch();
+          }
+        });
+
+        explorerChain.addEventListener("change", async () => {
+          const output = document.getElementById("explorer-result");
+          if (output) output.textContent = "";
+          await loadExplorerStats();
+        });
+      }
 
       document.getElementById("deposit-btn").addEventListener("click", async () => {
         const nodeId = document.getElementById("deposit-node").value;
@@ -453,9 +429,11 @@
         const chainSelect = document.getElementById("node-chain");
         chainSelect.innerHTML = chains.map((chain) => `<option value="${chain.id}">${chain.name}</option>`).join("");
         const explorerSelect = document.getElementById("explorer-chain");
-        explorerSelect.innerHTML = chains
-          .map((chain) => `<option value="${chain.id}">${chain.name}</option>`)
-          .join("");
+        if (explorerSelect) {
+          explorerSelect.innerHTML = chains
+            .map((chain) => `<option value="${chain.id}">${chain.name}</option>`)
+            .join("");
+        }
       }
 
       async function loadNodes() {
@@ -585,7 +563,9 @@
       }
 
       async function loadExplorerStats() {
-        const chain = document.getElementById("explorer-chain").value;
+        const chainSelect = document.getElementById("explorer-chain");
+        if (!chainSelect) return;
+        const chain = chainSelect.value;
         const blockCount = await api(`/public/${chain}/blockcount`);
         const bestHash = await api(`/public/${chain}/bestblockhash`);
         const mempool = await api(`/public/${chain}/mempool`);
@@ -599,9 +579,12 @@
       }
 
       async function performExplorerSearch() {
-        const chain = document.getElementById("explorer-chain").value;
-        const query = document.getElementById("explorer-search").value.trim();
+        const chainSelect = document.getElementById("explorer-chain");
+        const searchInput = document.getElementById("explorer-search");
         const output = document.getElementById("explorer-result");
+        if (!chainSelect || !searchInput || !output) return;
+        const chain = chainSelect.value;
+        const query = searchInput.value.trim();
         if (!query) {
           output.textContent = "";
           return;
@@ -632,6 +615,7 @@
       }
 
       function updateExplorerRefresh(enabled) {
+        if (!document.getElementById("explorer-chain")) return;
         if (enabled && !explorerTimer) {
           explorerTimer = setInterval(async () => {
             await loadExplorerStats();
