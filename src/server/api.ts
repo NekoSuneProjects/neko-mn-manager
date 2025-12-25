@@ -220,6 +220,42 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
     res.json({ ok: true });
   });
 
+  app.post("/api/nodes/:id/startmasternode", async (req, res) => {
+    try {
+      const result = await manager.startMasternode(req.session.userId, req.params.id);
+      res.json({ ok: true, result });
+    } catch (error) {
+      res.json({
+        ok: false,
+        error: error instanceof Error ? error.message : "RPC unavailable"
+      });
+    }
+  });
+
+  app.get("/api/nodes/:id/masternode-status", async (req, res) => {
+    try {
+      const result = await manager.getMasternodeStatus(req.session.userId, req.params.id);
+      res.json({ ok: true, result });
+    } catch (error) {
+      res.json({
+        ok: false,
+        error: error instanceof Error ? error.message : "RPC unavailable"
+      });
+    }
+  });
+
+  app.get("/api/nodes/:id/peers", async (req, res) => {
+    try {
+      const peers = await manager.getPeerInfo(req.session.userId, req.params.id);
+      res.json({ ok: true, peers, count: peers.length });
+    } catch (error) {
+      res.json({
+        ok: false,
+        error: error instanceof Error ? error.message : "RPC unavailable"
+      });
+    }
+  });
+
   app.post("/api/nodes/:id/stop", async (req, res) => {
     await manager.stop(req.session.userId, req.params.id);
     res.json({ ok: true });
@@ -244,13 +280,20 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
     try {
       const blockCount = await manager.getBlockCount(req.session.userId, req.params.id);
       const info = await manager.getBlockchainInfo(req.session.userId, req.params.id);
+      let masternodeStatus = null;
+      try {
+        masternodeStatus = await manager.getMasternodeStatus(req.session.userId, req.params.id);
+      } catch {
+        masternodeStatus = null;
+      }
       res.json({
         online: true,
         blockCount,
         verificationProgress: info?.verificationprogress ?? null,
         headers: info?.headers ?? null,
         blocks: info?.blocks ?? null,
-        chain: info?.chain ?? null
+        chain: info?.chain ?? null,
+        masternodeStatus
       });
     } catch (error) {
       res.json({
@@ -373,6 +416,69 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
         current: null,
         updateAvailable: false,
         error: error instanceof Error ? error.message : "Update check failed"
+      });
+    }
+  });
+
+  app.get("/api/nodes/:id/coldstaking/balance", async (req, res) => {
+    try {
+      const result = await manager.getColdStakingBalance(req.session.userId, req.params.id);
+      res.json({ ok: true, result });
+    } catch (error) {
+      res.json({
+        ok: false,
+        error: error instanceof Error ? error.message : "RPC unavailable"
+      });
+    }
+  });
+
+  app.get("/api/nodes/:id/coldstaking/address", async (req, res) => {
+    try {
+      const address = await manager.getNewStakingAddress(req.session.userId, req.params.id);
+      res.json({ ok: true, address });
+    } catch (error) {
+      res.json({
+        ok: false,
+        error: error instanceof Error ? error.message : "RPC unavailable"
+      });
+    }
+  });
+
+  app.get("/api/nodes/:id/staking/status", async (req, res) => {
+    try {
+      const result = await manager.getStakingStatus(req.session.userId, req.params.id);
+      res.json({ ok: true, result });
+    } catch (error) {
+      res.json({
+        ok: false,
+        error: error instanceof Error ? error.message : "RPC unavailable"
+      });
+    }
+  });
+
+  app.get("/api/nodes/:id/coldstaking/utxos", async (req, res) => {
+    try {
+      const utxos = await manager.listColdUtxos(req.session.userId, req.params.id);
+      res.json({ ok: true, utxos });
+    } catch (error) {
+      res.json({
+        ok: false,
+        error: error instanceof Error ? error.message : "RPC unavailable"
+      });
+    }
+  });
+
+  app.post("/api/nodes/:id/coldstaking/whitelist", async (req, res) => {
+    try {
+      const added = await manager.whitelistColdStakingDelegators(
+        req.session.userId,
+        req.params.id
+      );
+      res.json({ ok: true, added });
+    } catch (error) {
+      res.json({
+        ok: false,
+        error: error instanceof Error ? error.message : "RPC unavailable"
       });
     }
   });

@@ -36,6 +36,8 @@
             <nav class="space-y-2 text-sm">
               <button class="nav-btn w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-900" data-target="overview">Overview</button>
               <button class="nav-btn w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-900" data-target="nodes">Nodes</button>
+              <button class="nav-btn w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-900" data-target="nodes-extra">Masternode</button>
+              <button class="nav-btn w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-900" data-target="staking">Staking</button>
               <button class="nav-btn w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-900" data-target="transactions">Transactions</button>
               <button class="nav-btn w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-900" data-target="explorer">Explorer</button>
               <button class="nav-btn w-full rounded-xl px-4 py-3 text-left text-slate-300 hover:bg-slate-900" data-target="settings">Settings</button>
@@ -94,6 +96,62 @@
                 <button id="open-create-node" class="rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-cyan-400">Add Node</button>
               </div>
               <div id="nodes-grid" class="grid gap-6 lg:grid-cols-2"></div>
+            </section>
+            <section id="view-nodes-extra" class="hidden space-y-8">
+              <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h2 class="text-2xl font-semibold">Masternode and Peers</h2>
+                  <p class="text-sm text-slate-400">Start masternode, view status, and peers.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                  <select id="mn-node-select" class="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"></select>
+                  <button id="mn-status-btn" class="rounded-xl border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:border-slate-500">Status</button>
+                  <button id="mn-start-btn" class="rounded-xl bg-cyan-500 px-3 py-2 text-xs font-semibold text-slate-900 hover:bg-cyan-400">Start Masternode</button>
+                </div>
+              </div>
+              <div class="grid gap-6 lg:grid-cols-2">
+                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                  <h3 class="text-lg font-semibold">Masternode Status</h3>
+                  <pre id="mn-status" class="mt-4 max-h-64 overflow-auto text-xs text-slate-300"></pre>
+                </div>
+                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                  <div class="flex items-center justify-between">
+                    <h3 class="text-lg font-semibold">Peers</h3>
+                    <button id="peers-refresh" class="rounded-xl border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:border-slate-500">Refresh</button>
+                  </div>
+                  <div id="peers-list" class="mt-4 space-y-2 text-xs text-slate-300"></div>
+                </div>
+              </div>
+            </section>
+            <section id="view-staking" class="hidden space-y-8">
+              <div class="flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <h2 class="text-2xl font-semibold">Staking and Cold Staking</h2>
+                  <p class="text-sm text-slate-400">Manage staking status and cold staking balances.</p>
+                </div>
+                <div class="flex items-center gap-3">
+                  <select id="staking-node-select" class="rounded-xl border border-slate-700 bg-slate-950 px-3 py-2 text-sm text-slate-200"></select>
+                  <button id="staking-refresh" class="rounded-xl border border-slate-700 px-3 py-2 text-xs text-slate-300 hover:border-slate-500">Refresh</button>
+                </div>
+              </div>
+              <div class="grid gap-6 lg:grid-cols-2">
+                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                  <h3 class="text-lg font-semibold">Staking Status</h3>
+                  <pre id="staking-status" class="mt-4 max-h-64 overflow-auto text-xs text-slate-300"></pre>
+                </div>
+                <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                  <h3 class="text-lg font-semibold">Cold Staking</h3>
+                  <button id="coldstaking-address-btn" class="mt-4 w-full rounded-xl bg-cyan-500 px-4 py-2 text-sm font-semibold text-slate-900 hover:bg-cyan-400">Generate Staking Address</button>
+                  <p id="coldstaking-address" class="mt-4 break-all text-sm text-slate-300"></p>
+                  <div class="mt-4 rounded-2xl border border-slate-800 bg-slate-950/60 p-3 text-xs text-slate-300">
+                    <span>Balance:</span>
+                    <span id="coldstaking-balance"></span>
+                  </div>
+                  <button id="coldstaking-utxos-btn" class="mt-4 w-full rounded-xl border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-slate-500">List Cold UTXOs</button>
+                  <button id="coldstaking-whitelist-btn" class="mt-3 w-full rounded-xl border border-slate-700 px-4 py-2 text-sm text-slate-200 hover:border-slate-500">Whitelist Delegators</button>
+                  <pre id="coldstaking-utxos" class="mt-4 max-h-64 overflow-auto text-xs text-slate-300"></pre>
+                </div>
+              </div>
             </section>
 
             <section id="view-transactions" class="hidden space-y-8">
@@ -239,6 +297,7 @@
       const refreshIntervalMs = 5000;
       const txRefreshIntervalMs = 5000;
       let chainMap = new Map();
+      let lastTxSeen = new Set();
 
       const api = async (path, options = {}) => {
         const res = await fetch(path, {
@@ -357,6 +416,53 @@
         await loadExplorerStats();
       });
 
+      document.getElementById("mn-status-btn").addEventListener("click", async () => {
+        await loadMasternodeStatus();
+      });
+
+      document.getElementById("mn-start-btn").addEventListener("click", async () => {
+        const nodeId = document.getElementById("mn-node-select").value;
+        const result = await api(`/api/nodes/${nodeId}/startmasternode`, { method: "POST" });
+        if (!result.ok) {
+          showAlert(result.error || "Start masternode failed.");
+        }
+        await loadMasternodeStatus();
+      });
+
+      document.getElementById("peers-refresh").addEventListener("click", async () => {
+        await loadPeers();
+      });
+
+      document.getElementById("staking-refresh").addEventListener("click", async () => {
+        await loadStakingStatus();
+        await loadColdStakingBalance();
+      });
+
+      document.getElementById("coldstaking-address-btn").addEventListener("click", async () => {
+        const nodeId = document.getElementById("staking-node-select").value;
+        const result = await api(`/api/nodes/${nodeId}/coldstaking/address`);
+        if (!result.ok) {
+          showAlert(result.error || "Failed to generate staking address.");
+          return;
+        }
+        document.getElementById("coldstaking-address").textContent = result.address;
+      });
+
+      document.getElementById("coldstaking-utxos-btn").addEventListener("click", async () => {
+        await loadColdUtxos();
+      });
+
+      document.getElementById("coldstaking-whitelist-btn").addEventListener("click", async () => {
+        const nodeId = document.getElementById("staking-node-select").value;
+        const result = await api(`/api/nodes/${nodeId}/coldstaking/whitelist`, { method: "POST" });
+        if (!result.ok) {
+          showAlert(result.error || "Whitelist failed.");
+          return;
+        }
+        showAlert(`Whitelisted ${result.added} delegators.`, "success");
+        await loadColdUtxos();
+      });
+
       document.getElementById("deposit-btn").addEventListener("click", async () => {
         const nodeId = document.getElementById("deposit-node").value;
         const data = await api(`/api/nodes/${nodeId}/deposit`);
@@ -460,6 +566,8 @@
         document.getElementById("import-node").innerHTML = nodeOptions;
         document.getElementById("export-node").innerHTML = nodeOptions;
         document.getElementById("export-all-node").innerHTML = nodeOptions;
+        document.getElementById("mn-node-select").innerHTML = nodeOptions;
+        document.getElementById("staking-node-select").innerHTML = nodeOptions;
 
         const cards = [];
         let totalBalance = 0;
@@ -571,6 +679,12 @@
 
         updateAutoRefresh(state.nodes.length > 0);
         updateTxRefresh(state.nodes.length > 0);
+        if (state.nodes.length > 0) {
+          await loadMasternodeStatus();
+          await loadPeers();
+          await loadStakingStatus();
+          await loadColdStakingBalance();
+        }
       }
 
       async function loadTransactions() {
@@ -586,6 +700,13 @@
         if (!data.items.length) {
           list.innerHTML = '<p class="text-sm text-slate-400">No transactions yet.</p>';
         } else {
+          const incoming = data.items.filter((item) => item.category === "receive");
+          const newTxs = incoming.filter((item) => !lastTxSeen.has(item.txid));
+          if (newTxs.length) {
+            const latest = newTxs[0];
+            showAlert(`New transaction: ${latest.label} +${latest.amount}`);
+          }
+          lastTxSeen = new Set(incoming.map((item) => item.txid));
           list.innerHTML = data.items
             .map(
               (tx) => `
@@ -605,6 +726,53 @@
             )
             .join("");
         }
+      }
+
+      async function loadMasternodeStatus() {
+        const nodeId = document.getElementById("mn-node-select").value;
+        if (!nodeId) return;
+        const result = await api(`/api/nodes/${nodeId}/masternode-status`);
+        const output = document.getElementById("mn-status");
+        output.textContent = result.ok ? JSON.stringify(result.result, null, 2) : result.error;
+      }
+
+      async function loadPeers() {
+        const nodeId = document.getElementById("mn-node-select").value;
+        if (!nodeId) return;
+        const result = await api(`/api/nodes/${nodeId}/peers`);
+        const list = document.getElementById("peers-list");
+        if (!result.ok) {
+          list.textContent = result.error || "Failed to load peers.";
+          return;
+        }
+        list.innerHTML = result.peers
+          .map((peer) => `<div>${peer.addr} - ${peer.subver}</div>`)
+          .join("");
+      }
+
+      async function loadStakingStatus() {
+        const nodeId = document.getElementById("staking-node-select").value;
+        if (!nodeId) return;
+        const result = await api(`/api/nodes/${nodeId}/staking/status`);
+        const output = document.getElementById("staking-status");
+        output.textContent = result.ok ? JSON.stringify(result.result, null, 2) : result.error;
+      }
+
+      async function loadColdStakingBalance() {
+        const nodeId = document.getElementById("staking-node-select").value;
+        if (!nodeId) return;
+        const result = await api(`/api/nodes/${nodeId}/coldstaking/balance`);
+        document.getElementById("coldstaking-balance").textContent = result.ok
+          ? JSON.stringify(result.result)
+          : result.error || "-";
+      }
+
+      async function loadColdUtxos() {
+        const nodeId = document.getElementById("staking-node-select").value;
+        if (!nodeId) return;
+        const result = await api(`/api/nodes/${nodeId}/coldstaking/utxos`);
+        const output = document.getElementById("coldstaking-utxos");
+        output.textContent = result.ok ? JSON.stringify(result.utxos, null, 2) : result.error;
       }
 
       async function loadExplorerStats() {

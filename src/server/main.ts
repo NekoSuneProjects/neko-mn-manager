@@ -16,3 +16,26 @@ startServer(manager, {
   baseDir: manager.getBaseDir(),
   storage: manager.getStorage()
 });
+
+const whitelistEnabled = process.env.COLDSTAKE_WHITELIST === "1";
+const whitelistIntervalSec = Number(process.env.COLDSTAKE_WHITELIST_INTERVAL_SECONDS ?? 30);
+
+if (whitelistEnabled) {
+  const runWhitelist = async () => {
+    try {
+      const nodes = await manager.getStorage().listAllNodes();
+      for (const node of nodes) {
+        try {
+          await manager.whitelistColdStakingDelegatorsForNode(node);
+        } catch {
+          // ignore per-node errors
+        }
+      }
+    } catch {
+      // ignore global errors
+    }
+  };
+
+  void runWhitelist();
+  setInterval(runWhitelist, Math.max(5, whitelistIntervalSec) * 1000);
+}

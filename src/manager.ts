@@ -422,6 +422,63 @@ export class NodeManager {
     };
   }
 
+  async getMasternodeStatus(userId: number, id: string): Promise<any> {
+    const node = await this.storage.getNode(userId, id);
+    return rpcCall(node, "getmasternodestatus");
+  }
+
+  async startMasternode(userId: number, id: string): Promise<any> {
+    const node = await this.storage.getNode(userId, id);
+    return rpcCall(node, "startmasternode", ["local", false]);
+  }
+
+  async getPeerInfo(userId: number, id: string): Promise<any[]> {
+    const node = await this.storage.getNode(userId, id);
+    return rpcCall(node, "getpeerinfo");
+  }
+
+  async getColdStakingBalance(userId: number, id: string): Promise<any> {
+    const node = await this.storage.getNode(userId, id);
+    return rpcCall(node, "getcoldstakingbalance");
+  }
+
+  async getNewStakingAddress(userId: number, id: string): Promise<string> {
+    const node = await this.storage.getNode(userId, id);
+    return rpcCall(node, "getnewstakingaddress");
+  }
+
+  async getStakingStatus(userId: number, id: string): Promise<any> {
+    const node = await this.storage.getNode(userId, id);
+    return rpcCall(node, "getstakingstatus");
+  }
+
+  async listColdUtxos(userId: number, id: string): Promise<any[]> {
+    const node = await this.storage.getNode(userId, id);
+    return rpcCall(node, "listcoldutxos");
+  }
+
+  async whitelistColdStakingDelegators(userId: number, id: string): Promise<number> {
+    const node = await this.storage.getNode(userId, id);
+    return this.whitelistColdStakingDelegatorsForNode(node);
+  }
+
+  async whitelistColdStakingDelegatorsForNode(node: NodeConfig): Promise<number> {
+    const utxos = await rpcCall<any[]>(node, "listcoldutxos");
+    let added = 0;
+    for (const stake of utxos) {
+      const whitelisted = stake["whitelisted"];
+      const isWhitelisted = whitelisted === true || whitelisted === "true";
+      if (!isWhitelisted) {
+        const owner = stake["coin-owner"];
+        if (owner) {
+          await rpcCall(node, "delegatoradd", [owner]);
+          added += 1;
+        }
+      }
+    }
+    return added;
+  }
+
   async listNodes(userId: number): Promise<NodeConfig[]> {
     return this.storage.listNodes(userId);
   }
