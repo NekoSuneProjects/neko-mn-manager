@@ -672,7 +672,10 @@
               await loadNodes();
               return;
             }
-            await api(`/api/nodes/${id}/${action}`, { method: "POST" });
+            const result = await api(`/api/nodes/${id}/${action}`, { method: "POST" });
+            if (result && result.ok === false) {
+              showAlert(result.error || "Node is offline. Start it first.");
+            }
             await loadNodes();
           });
         });

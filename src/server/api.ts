@@ -257,18 +257,39 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
   });
 
   app.post("/api/nodes/:id/stop", async (req, res) => {
-    await manager.stop(req.session.userId, req.params.id);
-    res.json({ ok: true });
+    try {
+      await manager.stop(req.session.userId, req.params.id);
+      res.json({ ok: true });
+    } catch (error) {
+      res.json({
+        ok: false,
+        error: "Node is offline. Start it first."
+      });
+    }
   });
 
   app.post("/api/nodes/:id/restart", async (req, res) => {
-    await manager.restart(req.session.userId, req.params.id);
-    res.json({ ok: true });
+    try {
+      await manager.restart(req.session.userId, req.params.id);
+      res.json({ ok: true });
+    } catch (error) {
+      res.json({
+        ok: false,
+        error: "Node is offline. Start it first."
+      });
+    }
   });
 
   app.post("/api/nodes/:id/resync", async (req, res) => {
-    await manager.resync(req.session.userId, req.params.id);
-    res.json({ ok: true });
+    try {
+      await manager.resync(req.session.userId, req.params.id);
+      res.json({ ok: true });
+    } catch (error) {
+      res.json({
+        ok: false,
+        error: "Node is offline. Start it first."
+      });
+    }
   });
 
   app.delete("/api/nodes/:id", async (req, res) => {
@@ -484,8 +505,15 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
   });
 
   app.post("/api/nodes/:id/update", async (req, res) => {
-    await manager.updateNodeCore(req.session.userId, req.params.id);
-    res.json({ ok: true });
+    try {
+      await manager.updateNodeCore(req.session.userId, req.params.id);
+      res.json({ ok: true });
+    } catch (error) {
+      res.json({
+        ok: false,
+        error: "Node is offline. Start it first."
+      });
+    }
   });
 
   return app;
