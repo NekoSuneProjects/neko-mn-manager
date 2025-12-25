@@ -11,5 +11,6 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
 COPY package.json ./
 RUN npm install --include=dev
 COPY . .
+RUN tsc -p tsconfig.json
 EXPOSE 8080 26210 26211 51472 51473 22555 22556
-CMD ["node", "--loader", "ts-node/esm", "src/server/main.ts"]
+CMD ["node", "dist/index.js"]
