@@ -79,6 +79,7 @@
                   <p id="stat-balance" class="mt-3 text-3xl font-semibold">0.00</p>
                 </div>
               </div>
+              <div id="chain-balances" class="grid gap-6 md:grid-cols-2 lg:grid-cols-3"></div>
               <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
                 <div class="flex items-center justify-between">
                   <h3 class="text-lg font-semibold">Quick Actions</h3>
@@ -227,13 +228,17 @@
       const statNodes = document.getElementById("stat-nodes");
       const statActive = document.getElementById("stat-active");
       const statBalance = document.getElementById("stat-balance");
+      const chainBalances = document.getElementById("chain-balances");
       const nodesGrid = document.getElementById("nodes-grid");
       const createModal = document.getElementById("create-node-modal");
       let refreshTimer = null;
       let refreshBusy = false;
       let txSearchTimer = null;
       let explorerTimer = null;
+      let txRefreshTimer = null;
       const refreshIntervalMs = 5000;
+      const txRefreshIntervalMs = 5000;
+      let chainMap = new Map();
 
       const api = async (path, options = {}) => {
         const res = await fetch(path, {
@@ -430,6 +435,7 @@
 
       async function loadChains() {
         const chains = await api("/api/chains");
+        chainMap = new Map(chains.map((chain) => [chain.id, chain]));
         const chainSelect = document.getElementById("node-chain");
         chainSelect.innerHTML = chains.map((chain) => `<option value="${chain.id}">${chain.name}</option>`).join("");
         const explorerSelect = document.getElementById("explorer-chain");
@@ -458,6 +464,7 @@
         const cards = [];
         let totalBalance = 0;
         let activeCount = 0;
+        const balanceByChain = new Map();
 
         for (const node of state.nodes) {
           let status = { online: false };
@@ -470,7 +477,12 @@
           } catch {
             // keep defaults
           }
-          totalBalance += balanceInfo.balance ?? 0;
+          const balanceValue = balanceInfo.balance ?? 0;
+          totalBalance += balanceValue;
+          balanceByChain.set(
+            node.chain,
+            (balanceByChain.get(node.chain) ?? 0) + balanceValue
+          );
           if (status.online && status.verificationProgress && status.verificationProgress > 0.99) {
             activeCount += 1;
           }
@@ -529,6 +541,18 @@
         statActive.textContent = activeCount;
         statBalance.textContent = totalBalance.toFixed(4);
         nodesGrid.innerHTML = cards.join("");
+        chainBalances.innerHTML = Array.from(balanceByChain.entries())
+          .map(([chainId, balance]) => {
+            const chain = chainMap.get(chainId);
+            const label = chain ? `${chain.name} (${chain.symbol})` : chainId.toUpperCase();
+            return `
+              <div class="rounded-3xl border border-slate-800 bg-slate-900/70 p-6">
+                <p class="text-sm text-slate-400">${label} Balance</p>
+                <p class="mt-3 text-2xl font-semibold">${balance.toFixed(4)}</p>
+              </div>
+            `;
+          })
+          .join("");
 
         document.querySelectorAll(".node-action").forEach((btn) => {
           btn.addEventListener("click", async () => {
@@ -546,6 +570,7 @@
         });
 
         updateAutoRefresh(state.nodes.length > 0);
+        updateTxRefresh(state.nodes.length > 0);
       }
 
       async function loadTransactions() {
@@ -658,6 +683,18 @@
         if (!enabled && refreshTimer) {
           clearInterval(refreshTimer);
           refreshTimer = null;
+        }
+      }
+
+      function updateTxRefresh(enabled) {
+        if (enabled && !txRefreshTimer) {
+          txRefreshTimer = setInterval(async () => {
+            await loadTransactions();
+          }, txRefreshIntervalMs);
+        }
+        if (!enabled && txRefreshTimer) {
+          clearInterval(txRefreshTimer);
+          txRefreshTimer = null;
         }
       }
 
