@@ -1,7 +1,7 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 import { Sequelize, DataTypes, Model, Op, type ModelCtor } from "sequelize";
-import type { NodeConfig } from "../types.ts";
+import type { NodeConfig } from "../types.js";
 
 export interface UserRecord {
   id: number;

@@ -1,6 +1,6 @@
 import fs from "node:fs/promises";
 import path from "node:path";
-import type { ChainPlugin, NodeConfig } from "../types.ts";
+import type { ChainPlugin, NodeConfig } from "../types.js";
 
 export async function writeConfig(chain: ChainPlugin, node: NodeConfig): Promise<void> {
   const content = `${chain.config(node).trim()}\n`;

@@ -1,5 +1,5 @@
-import { zenzo } from "./zenzo.ts";
-import { pivx } from "./pivx.ts";
-import { dogecash } from "./dogecash.ts";
+import { zenzo } from "./zenzo.js";
+import { pivx } from "./pivx.js";
+import { dogecash } from "./dogecash.js";
 
 export const builtinChains = [zenzo, pivx, dogecash];

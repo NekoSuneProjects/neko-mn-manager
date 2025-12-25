@@ -2,10 +2,10 @@ import path from "node:path";
 import fs from "node:fs/promises";
 import express from "express";
 
-import { createApp } from "./api.ts";
-import { createDashboardRouter } from "./dashboard.ts";
-import type { NodeManager } from "../manager.ts";
-import type { SequelizeStorage } from "../db/storage.ts";
+import { createApp } from "./api.js";
+import { createDashboardRouter } from "./dashboard.js";
+import type { NodeManager } from "../manager.js";
+import type { SequelizeStorage } from "../db/storage.js";
 
 export interface ServerOptions {
   port: number;

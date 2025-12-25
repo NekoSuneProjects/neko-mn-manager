@@ -1,4 +1,4 @@
-import type { NodeConfig } from "../types.ts";
+import type { NodeConfig } from "../types.js";
 
 export async function rpcCall<T = any>(
   node: Pick<NodeConfig, "rpcPort" | "rpcUser" | "rpcPassword">,

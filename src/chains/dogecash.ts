@@ -1,4 +1,4 @@
-import type { ChainPlugin } from "../types.ts";
+import type { ChainPlugin } from "../types.js";
 
 export const dogecash: ChainPlugin = {
   id: "dogecash",

@@ -1,9 +1,9 @@
 import fs from "node:fs/promises";
 import path from "node:path";
 
-import { downloadToFile } from "./downloader.ts";
-import { extractArchive } from "./extract.ts";
-import type { NodeConfig } from "../types.ts";
+import { downloadToFile } from "./downloader.js";
+import { extractArchive } from "./extract.js";
+import type { NodeConfig } from "../types.js";
 
 async function pathExists(target: string): Promise<boolean> {
   try {

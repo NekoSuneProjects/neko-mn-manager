@@ -1,13 +1,13 @@
 import express from "express";
-import session from "express-session";
+import session, { type Store } from "express-session";
 import ConnectSqlite3 from "connect-sqlite3";
 import bcrypt from "bcryptjs";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { rpcCall } from "../core/rpc.ts";
+import { rpcCall } from "../core/rpc.js";
 
-import type { NodeManager } from "../manager.ts";
-import type { SequelizeStorage } from "../db/storage.ts";
+import type { NodeManager } from "../manager.js";
+import type { SequelizeStorage } from "../db/storage.js";
 
 export interface AppOptions {
   sessionDbPath: string;
@@ -21,7 +21,7 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
   app.use(express.json());
   app.use(
     session({
-      store: new SQLiteStore({ db: "sessions.sqlite", dir: options.sessionDbPath }),
+      store: new SQLiteStore({ db: "sessions.sqlite", dir: options.sessionDbPath }) as Store,
       secret: process.env.SESSION_SECRET ?? "neko-mn-secret",
       resave: false,
       saveUninitialized: false,
@@ -185,27 +185,27 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
   });
 
   app.get("/api/nodes", async (req, res) => {
-    const nodes = await manager.listNodes(req.session.userId);
+    const nodes = await manager.listNodes(req.session.userId!);
     res.json(nodes);
   });
 
   app.get("/api/transactions", async (req, res) => {
     const search = String(req.query.search ?? "");
-    const items = await manager.listAllTransactions(req.session.userId, search);
+    const items = await manager.listAllTransactions(req.session.userId!, search);
     res.json({ items });
   });
 
   app.get("/api/nodes/:id", async (req, res) => {
-    const node = await manager.getNode(req.session.userId, req.params.id);
+    const node = await manager.getNode(req.session.userId!, req.params.id);
     res.json(node);
   });
 
   app.post("/api/nodes", async (req, res) => {
     try {
-      const node = await manager.createNode(req.session.userId, req.body);
+      const node = await manager.createNode(req.session.userId!, req.body);
       let status = null;
       try {
-        status = await manager.getBlockchainInfo(req.session.userId, node.id);
+        status = await manager.getBlockchainInfo(req.session.userId!, node.id);
       } catch {
         status = null;
       }
@@ -219,13 +219,13 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
   });
 
   app.post("/api/nodes/:id/start", async (req, res) => {
-    await manager.start(req.session.userId, req.params.id);
+    await manager.start(req.session.userId!, req.params.id);
     res.json({ ok: true });
   });
 
   app.post("/api/nodes/:id/startmasternode", async (req, res) => {
     try {
-      const result = await manager.startMasternode(req.session.userId, req.params.id);
+      const result = await manager.startMasternode(req.session.userId!, req.params.id);
       res.json({ ok: true, result });
     } catch (error) {
       res.json({
@@ -237,7 +237,7 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
 
   app.get("/api/nodes/:id/masternode-status", async (req, res) => {
     try {
-      const result = await manager.getMasternodeStatus(req.session.userId, req.params.id);
+      const result = await manager.getMasternodeStatus(req.session.userId!, req.params.id);
       res.json({ ok: true, result });
     } catch (error) {
       res.json({
@@ -249,7 +249,7 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
 
   app.get("/api/nodes/:id/peers", async (req, res) => {
     try {
-      const peers = await manager.getPeerInfo(req.session.userId, req.params.id);
+      const peers = await manager.getPeerInfo(req.session.userId!, req.params.id);
       res.json({ ok: true, peers, count: peers.length });
     } catch (error) {
       res.json({
@@ -261,7 +261,7 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
 
   app.post("/api/nodes/:id/stop", async (req, res) => {
     try {
-      await manager.stop(req.session.userId, req.params.id);
+      await manager.stop(req.session.userId!, req.params.id);
       res.json({ ok: true });
     } catch (error) {
       res.json({
@@ -273,7 +273,7 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
 
   app.post("/api/nodes/:id/restart", async (req, res) => {
     try {
-      await manager.restart(req.session.userId, req.params.id);
+      await manager.restart(req.session.userId!, req.params.id);
       res.json({ ok: true });
     } catch (error) {
       res.json({
@@ -285,7 +285,7 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
 
   app.post("/api/nodes/:id/resync", async (req, res) => {
     try {
-      await manager.resync(req.session.userId, req.params.id);
+      await manager.resync(req.session.userId!, req.params.id);
       res.json({ ok: true });
     } catch (error) {
       res.json({
@@ -296,17 +296,17 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
   });
 
   app.delete("/api/nodes/:id", async (req, res) => {
-    await manager.deleteNode(req.session.userId, req.params.id);
+    await manager.deleteNode(req.session.userId!, req.params.id);
     res.json({ ok: true });
   });
 
   app.get("/api/nodes/:id/status", async (req, res) => {
     try {
-      const blockCount = await manager.getBlockCount(req.session.userId, req.params.id);
-      const info = await manager.getBlockchainInfo(req.session.userId, req.params.id);
+      const blockCount = await manager.getBlockCount(req.session.userId!, req.params.id);
+      const info = await manager.getBlockchainInfo(req.session.userId!, req.params.id);
       let masternodeStatus = null;
       try {
-        masternodeStatus = await manager.getMasternodeStatus(req.session.userId, req.params.id);
+        masternodeStatus = await manager.getMasternodeStatus(req.session.userId!, req.params.id);
       } catch {
         masternodeStatus = null;
       }
@@ -329,7 +329,7 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
 
   app.get("/api/nodes/:id/balance", async (req, res) => {
     try {
-      const balance = await manager.getBalance(req.session.userId, req.params.id);
+      const balance = await manager.getBalance(req.session.userId!, req.params.id);
       res.json({ online: true, balance });
     } catch (error) {
       res.json({
@@ -344,7 +344,7 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
     const count = Number(req.query.count ?? 25);
     const skip = Number(req.query.skip ?? 0);
     try {
-      const transactions = await manager.listTransactions(req.session.userId, req.params.id, count, skip);
+      const transactions = await manager.listTransactions(req.session.userId!, req.params.id, count, skip);
       res.json({ online: true, transactions, count, skip });
     } catch (error) {
       res.json({
@@ -363,7 +363,7 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
       return res.status(400).json({ error: "Address and amount required" });
     }
     try {
-      const txid = await manager.sendToAddress(req.session.userId, req.params.id, address, amount);
+      const txid = await manager.sendToAddress(req.session.userId!, req.params.id, address, amount);
       res.json({ ok: true, txid });
     } catch (error) {
       res.json({
@@ -375,7 +375,7 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
 
   app.get("/api/nodes/:id/deposit", async (req, res) => {
     try {
-      const address = await manager.getNewAddress(req.session.userId, req.params.id);
+      const address = await manager.getNewAddress(req.session.userId!, req.params.id);
       res.json({ ok: true, address });
     } catch (error) {
       res.json({
@@ -391,7 +391,7 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
       return res.status(400).json({ ok: false, error: "Private key required" });
     }
     try {
-      await manager.importPrivKey(req.session.userId, req.params.id, privKey, label ?? "", !!rescan);
+      await manager.importPrivKey(req.session.userId!, req.params.id, privKey, label ?? "", !!rescan);
       res.json({ ok: true });
     } catch (error) {
       res.json({
@@ -407,7 +407,7 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
       return res.status(400).json({ ok: false, error: "Address required" });
     }
     try {
-      const privKey = await manager.dumpPrivKey(req.session.userId, req.params.id, address);
+      const privKey = await manager.dumpPrivKey(req.session.userId!, req.params.id, address);
       res.json({ ok: true, privKey });
     } catch (error) {
       res.json({
@@ -420,7 +420,7 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
   app.post("/api/nodes/:id/export-all-keys", async (req, res) => {
     const { includeZero } = req.body ?? {};
     try {
-      const keys = await manager.exportAllKeys(req.session.userId, req.params.id, includeZero !== false);
+      const keys = await manager.exportAllKeys(req.session.userId!, req.params.id, includeZero !== false);
       res.json({ ok: true, keys });
     } catch (error) {
       res.json({
@@ -432,7 +432,7 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
 
   app.get("/api/nodes/:id/update-check", async (req, res) => {
     try {
-      const { latest, current } = await manager.checkForUpdate(req.session.userId, req.params.id);
+      const { latest, current } = await manager.checkForUpdate(req.session.userId!, req.params.id);
       res.json({ latest, current, updateAvailable: current && latest !== current });
     } catch (error) {
       res.json({
@@ -446,7 +446,7 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
 
   app.get("/api/nodes/:id/coldstaking/balance", async (req, res) => {
     try {
-      const result = await manager.getColdStakingBalance(req.session.userId, req.params.id);
+      const result = await manager.getColdStakingBalance(req.session.userId!, req.params.id);
       res.json({ ok: true, result });
     } catch (error) {
       res.json({
@@ -458,7 +458,7 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
 
   app.get("/api/nodes/:id/coldstaking/address", async (req, res) => {
     try {
-      const address = await manager.getNewStakingAddress(req.session.userId, req.params.id);
+      const address = await manager.getNewStakingAddress(req.session.userId!, req.params.id);
       res.json({ ok: true, address });
     } catch (error) {
       res.json({
@@ -470,7 +470,7 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
 
   app.get("/api/nodes/:id/staking/status", async (req, res) => {
     try {
-      const result = await manager.getStakingStatus(req.session.userId, req.params.id);
+      const result = await manager.getStakingStatus(req.session.userId!, req.params.id);
       res.json({ ok: true, result });
     } catch (error) {
       res.json({
@@ -482,7 +482,7 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
 
   app.get("/api/nodes/:id/coldstaking/utxos", async (req, res) => {
     try {
-      const utxos = await manager.listColdUtxos(req.session.userId, req.params.id);
+      const utxos = await manager.listColdUtxos(req.session.userId!, req.params.id);
       res.json({ ok: true, utxos });
     } catch (error) {
       res.json({
@@ -495,7 +495,7 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
   app.post("/api/nodes/:id/coldstaking/whitelist", async (req, res) => {
     try {
       const added = await manager.whitelistColdStakingDelegators(
-        req.session.userId,
+        req.session.userId!,
         req.params.id
       );
       res.json({ ok: true, added });
@@ -509,7 +509,7 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
 
   app.post("/api/nodes/:id/update", async (req, res) => {
     try {
-      await manager.updateNodeCore(req.session.userId, req.params.id);
+      await manager.updateNodeCore(req.session.userId!, req.params.id);
       res.json({ ok: true });
     } catch (error) {
       res.json({
@@ -522,7 +522,7 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
   app.get("/api/nodes/:id/logs", async (req, res) => {
     const lines = Number(req.query.lines ?? 200);
     try {
-      const node = await manager.getNode(req.session.userId, req.params.id);
+      const node = await manager.getNode(req.session.userId!, req.params.id);
       const logPath = path.join(node.datadir, "debug.log");
       const content = await fs.readFile(logPath, "utf8");
       const allLines = content.split(/\r?\n/);
@@ -542,7 +542,7 @@ export function createApp(manager: NodeManager, options: AppOptions): express.Ex
       return res.status(400).json({ ok: false, error: "RPC method required" });
     }
     try {
-      const node = await manager.getNode(req.session.userId, req.params.id);
+      const node = await manager.getNode(req.session.userId!, req.params.id);
       const result = await rpcCall(node, method, params ?? []);
       res.json({ ok: true, result });
     } catch (error) {

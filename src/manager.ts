@@ -4,17 +4,17 @@ import crypto from "node:crypto";
 import fs from "node:fs/promises";
 import fsSync from "node:fs";
 
-import { SequelizeStorage } from "./db/storage.ts";
-import { getBasePlatform, getPlatformKey } from "./core/platform.ts";
-import { downloadToFile } from "./core/downloader.ts";
-import { verifySha256 } from "./core/verify.ts";
-import { extractArchive } from "./core/extract.ts";
-import { writeConfig } from "./core/configWriter.ts";
-import { startNodeProcess } from "./core/processManager.ts";
-import { rpcCall } from "./core/rpc.ts";
-import { applySnapshot } from "./core/snapshot.ts";
-import { builtinChains } from "./chains/registry.ts";
-import type { ChainPlugin, NodeConfig, NodeCreateInput } from "./types.ts";
+import { SequelizeStorage } from "./db/storage.js";
+import { getBasePlatform, getPlatformKey } from "./core/platform.js";
+import { downloadToFile } from "./core/downloader.js";
+import { verifySha256 } from "./core/verify.js";
+import { extractArchive } from "./core/extract.js";
+import { writeConfig } from "./core/configWriter.js";
+import { startNodeProcess } from "./core/processManager.js";
+import { rpcCall } from "./core/rpc.js";
+import { applySnapshot } from "./core/snapshot.js";
+import { builtinChains } from "./chains/registry.js";
+import type { ChainPlugin, NodeConfig, NodeCreateInput } from "./types.js";
 
 export interface NodeManagerOptions {
   baseDir?: string;

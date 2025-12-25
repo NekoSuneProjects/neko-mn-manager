@@ -1,4 +1,4 @@
-import type { PlatformKey } from "../types.ts";
+import type { PlatformKey } from "../types.js";
 
 export type BasePlatform = "win32" | "linux" | "darwin";
 

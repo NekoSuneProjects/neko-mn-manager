@@ -1,5 +1,5 @@
-import { NodeManager } from "../manager.ts";
-import { startServer } from "./server.ts";
+import { NodeManager } from "../manager.js";
+import { startServer } from "./server.js";
 
 const port = Number(
   process.env.PORT ??
