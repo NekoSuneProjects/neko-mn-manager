@@ -5,3 +5,13 @@ declare module "express-session" {
     userId?: number;
   }
 }
+
+declare global {
+  namespace Express {
+    interface Request {
+      session: import("express-session").Session & import("express-session").SessionData;
+    }
+  }
+}
+
+export {};
